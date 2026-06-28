@@ -3,17 +3,12 @@ import pandas as pd
 import plotly.express as px
 from prophet import Prophet
 
-# ---------------- PAGE SETTINGS ---------------- #
-st.set_page_config(
-    page_title="Sales Forecasting Dashboard",
-    page_icon="📈",
-    layout="wide"
-)
+# ---------------- PAGE SETUP ----------------
+st.set_page_config(page_title="Sales Dashboard", layout="wide")
 
-st.title("📈 Sales Forecasting Dashboard")
-st.markdown("### Data Science Internship Project")
+st.title("📊 Sales Forecast Dashboard")
 
-# ---------------- LOAD DATA ---------------- #
+# ---------------- LOAD DATA ----------------
 @st.cache_data
 def load_data():
     df = pd.read_csv("Sample - Superstore.csv", encoding="latin1")
@@ -22,19 +17,15 @@ def load_data():
 
 df = load_data()
 
-# ---------------- SIDEBAR ---------------- #
+# ---------------- FILTERS ----------------
 st.sidebar.header("Filters")
 
 region = st.sidebar.multiselect(
-    "Select Region",
-    options=df["Region"].unique(),
-    default=df["Region"].unique()
+    "Region", df["Region"].unique(), df["Region"].unique()
 )
 
 category = st.sidebar.multiselect(
-    "Select Category",
-    options=df["Category"].unique(),
-    default=df["Category"].unique()
+    "Category", df["Category"].unique(), df["Category"].unique()
 )
 
 filtered_df = df[
@@ -42,34 +33,50 @@ filtered_df = df[
     (df["Category"].isin(category))
 ]
 
-# ---------------- KPI CARDS ---------------- #
-total_sales = filtered_df["Sales"].sum()
-total_profit = filtered_df["Profit"].sum()
-total_orders = filtered_df["Order ID"].nunique()
-avg_sales = filtered_df["Sales"].mean()
+# ---------------- KPI ----------------
+col1, col2, col3 = st.columns(3)
 
-c1, c2, c3, c4 = st.columns(4)
-
-c1.metric("💰 Total Sales", f"${total_sales:,.2f}")
-c2.metric("📈 Total Profit", f"${total_profit:,.2f}")
-c3.metric("🛒 Orders", total_orders)
-c4.metric("📦 Avg Sales", f"${avg_sales:,.2f}")
+col1.metric("💰 Sales", f"{filtered_df['Sales'].sum():,.2f}")
+col2.metric("📈 Profit", f"{filtered_df['Profit'].sum():,.2f}")
+col3.metric("🛒 Orders", filtered_df["Order ID"].nunique())
 
 st.divider()
 
-# ---------------- SALES TREND ---------------- #
-daily_sales = (
-    filtered_df
-    .groupby("Order Date")["Sales"]
-    .sum()
-    .reset_index()
+# ---------------- SALES TREND ----------------
+daily_sales = filtered_df.groupby("Order Date")["Sales"].sum().reset_index()
+
+fig1 = px.line(daily_sales, x="Order Date", y="Sales", title="Sales Trend")
+st.plotly_chart(fig1, use_container_width=True)
+
+# ---------------- CATEGORY CHART ----------------
+cat_sales = filtered_df.groupby("Category")["Sales"].sum().reset_index()
+
+fig2 = px.bar(cat_sales, x="Category", y="Sales", title="Category Sales")
+st.plotly_chart(fig2, use_container_width=True)
+
+# ---------------- FORECAST ----------------
+st.subheader("🔮 Forecast (Prophet)")
+
+forecast_df = filtered_df.groupby("Order Date")["Sales"].sum().reset_index()
+forecast_df.columns = ["ds", "y"]
+
+model = Prophet()
+model.fit(forecast_df)
+
+future = model.make_future_dataframe(periods=365)
+forecast = model.predict(future)
+
+fig3 = model.plot(forecast)
+st.pyplot(fig3)
+
+# ---------------- DOWNLOAD ----------------
+csv = forecast[["ds", "yhat", "yhat_lower", "yhat_upper"]].to_csv(index=False)
+
+st.download_button(
+    "📥 Download Forecast CSV",
+    csv,
+    "sales_forecast.csv",
+    "text/csv"
 )
 
-fig = px.line(
-    daily_sales,
-    x="Order Date",
-    y="Sales",
-    title="📈 Daily Sales Trend"
-)
-
-st.plotly_chart(fig, use_container_width=True)
+st.success("Dashboard Ready 🚀")
