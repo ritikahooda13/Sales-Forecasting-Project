@@ -19,3 +19,9 @@ This project is an end-to-end Sales Forecasting Dashboard built using Python, St
 ```bash
 streamlit run sales_dashboard.py
 
+
+# Sales Forecasting System 📈
+[👉 Live Application Link](https://sales-forecasting-project-6nsqlgrkwp5wvambwlkrxv.streamlit.app/)
+
+### Project Preview:
+<img width="1366" height="597" ... src="[https://github.com/](https://github.com/)...">
